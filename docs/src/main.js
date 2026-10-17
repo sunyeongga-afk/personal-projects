@@ -1,3 +1,4 @@
+import {managedLinks} from './deployments.js';
 import {apps,checkRegistry} from './registry.js';
 import {read,write,empty} from './storage.js';
 import {validateApp,parseBackup,MAX_FILE} from './validation.js';
@@ -24,16 +25,16 @@ function recovery(){
  const actions=el('div',undefined,'actions');const raw=button('저장 원문 내려받기',()=>download('teacher-hub-recovery.json',loaded.raw??''));raw.disabled=loaded.raw===null;
  actions.append(raw,button('목록 초기화',()=>confirmAction('목록 초기화','저장 원문을 보관하셨나요? 현재 저장값을 빈 목록으로 교체합니다. 내부 앱은 유지됩니다.',()=>{data=write(store,empty());loaded={data,error:null,raw:null};blocked=false;render();status('빈 목록으로 초기화했습니다.');})),link('백업 복원으로 이동','#/backup','button'));box.append(actions);root.append(box);
 }
-function card(app,index,builtin){
+function card(app,index,builtin,managed=false){
  const item=el('article',undefined,'card');const visual=el('div',undefined,'visual'+(builtin?' dark':''));visual.setAttribute('aria-hidden','true');visual.append(el('span',`TOOL / ${String(index+1).padStart(3,'0')}`,'serial'));
  if(builtin && app.id==='builtin:pdf-counter'){visual.append(el('span','PDF / Aa','pdf-symbol'));}else if(builtin){const mini=el('div',undefined,'mini-calculator');mini.append(el('div','0.','mini-screen'));const keys=el('div',undefined,'mini-keys');for(let i=0;i<16;i++)keys.append(el('i'));mini.append(keys);visual.append(mini);}else visual.append(el('span','↗','link-symbol'));
  const actions=el('div',undefined,'actions');const a=link(builtin?app.name+' 실행 →':'웹앱 열기 ↗',builtin?'#'+app.route:app.url,'button');a.setAttribute('aria-label',app.name+' 실행');if(!builtin){a.target='_blank';a.rel='noopener noreferrer';}
- a.dataset.appId=app.id;actions.append(a);if(!builtin){const edit=link('수정 · 삭제','#/edit/'+encodeURIComponent(app.id),'text-button');edit.setAttribute('aria-label',app.name+' 수정 및 삭제');edit.onclick=()=>{focusReturn=app.id;};actions.append(edit);}
+ a.dataset.appId=app.id;actions.append(a);if(!builtin&&!managed){const edit=link('수정 · 삭제','#/edit/'+encodeURIComponent(app.id),'text-button');edit.setAttribute('aria-label',app.name+' 수정 및 삭제');edit.onclick=()=>{focusReturn=app.id;};actions.append(edit);}
  item.append(visual,el('div',builtin?'BUILT-IN / 내부 앱':'WEB LINK / 외부 앱','tag'),el('h3',app.name),el('p',app.description||'등록한 웹 프로그램'),actions);return item;
 }
 function hub(){
  root.innerHTML='<section class="intro"><div><p class="eyebrow">PERSONAL WORKSPACE / 01</p><h1>필요한 도구를,<br>한곳에.</h1></div><p>직접 만든 프로그램과 자주 쓰는 웹앱.<br>선생님의 작은 작업실을 차곡차곡 채워보세요.</p></section>';
- recovery();const section=el('div',undefined,'section-head');section.append(el('span','프로그램 모음 / '+String(apps.length+data.externalApps.length).padStart(2,'0')),link('+ 웹앱 등록','#/new'));root.append(section);const grid=el('div',undefined,'grid');apps.forEach((a,i)=>grid.append(card(a,i,true)));data.externalApps.forEach((a,i)=>grid.append(card(a,apps.length+i,false)));
+ recovery();const section=el('div',undefined,'section-head');section.append(el('span','프로그램 모음 / '+String(apps.length+managedLinks.length+data.externalApps.length).padStart(2,'0')),link('+ 웹앱 등록','#/new'));root.append(section);const grid=el('div',undefined,'grid');apps.forEach((a,i)=>grid.append(card(a,i,true)));managedLinks.forEach((a,i)=>grid.append(card(a,apps.length+i,false,true)));data.externalApps.forEach((a,i)=>grid.append(card(a,apps.length+managedLinks.length+i,false)));
  if(data.externalApps.length===0){const blank=el('div',undefined,'empty');blank.append(el('div','다음 도구를 위한 자리'),el('p','웹주소를 등록하거나 바이브 코딩으로 새 내부 앱을 추가하세요.'),link('+ 첫 웹앱 등록','#/new'));grid.append(blank);}root.append(grid);root.append(el('p','목록은 현재 브라우저에 저장됩니다. 다른 PC로 옮기려면 백업 파일을 내보내세요.','rule'));
  if(focusReturn){const target=[...root.querySelectorAll('[data-app-id]')].find(n=>n.dataset.appId===focusReturn);target?.focus();focusReturn=null;}
 }
